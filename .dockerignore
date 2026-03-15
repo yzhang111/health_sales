@@ -1,0 +1,14 @@
+.git
+.gitignore
+.venv
+.venv313
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+tests
+docs
+plans
+SKILLS_OVERVIEW.md
+NUTRITION_SOLUTION_BUSINESS_FLOW.md

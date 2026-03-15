@@ -116,3 +116,9 @@ The following project-local skills are available under `.agents/skills/<skill-na
 ## Usage Rule
 
 If the user explicitly names one of the skills above, or the task clearly matches it, use the project-local copy at `.agents/skills/<skill-name>/SKILL.md`.
+
+
+1️⃣ /approvals → auto
+2️⃣ 先 /plan 再执行
+3️⃣ 加 AGENTS.md
+4️⃣ 给完整任务而不是一步步指令

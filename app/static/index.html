@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nutrition Assistant Console</title>
+    <style>
+      :root {
+        --bg: #eef5f0;
+        --card: #ffffff;
+        --ink: #1e2b22;
+        --muted: #5b6c60;
+        --line: #d6e2da;
+        --brand: #177f57;
+        --brand-deep: #0f6040;
+      }
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", sans-serif;
+        background: linear-gradient(180deg, #e5f2ea 0%, var(--bg) 55%);
+        color: var(--ink);
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 26px auto;
+        padding: 0 14px;
+      }
+      .hero {
+        background: linear-gradient(125deg, #184f38, #1f8e61);
+        color: #fff;
+        border-radius: 16px;
+        padding: 22px;
+      }
+      .hero h1 { margin: 0; font-size: 26px; }
+      .hero p { margin: 7px 0 0; opacity: .94; }
+      .grid {
+        margin-top: 14px;
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      .hidden { display: none; }
+      label {
+        display: block;
+        color: var(--muted);
+        font-size: 13px;
+        margin: 8px 0 5px;
+      }
+      input, textarea, button, select {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 9px;
+        border: 1px solid #c8d6cd;
+        padding: 10px;
+        font-size: 14px;
+      }
+      textarea { min-height: 120px; font-family: ui-monospace, Menlo, monospace; }
+      button {
+        border: none;
+        background: var(--brand);
+        color: #fff;
+        font-weight: 600;
+        margin-top: 10px;
+        cursor: pointer;
+      }
+      button:hover { background: var(--brand-deep); }
+      .pill {
+        display: inline-block;
+        padding: 4px 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: #def5e9;
+        color: #155e41;
+        border: 1px solid #c5ebd8;
+      }
+      .log {
+        margin-top: 12px;
+        background: #0e1e16;
+        color: #bdf9d3;
+        border-radius: 10px;
+        padding: 12px;
+        min-height: 170px;
+        white-space: pre-wrap;
+        font-size: 12px;
+      }
+      .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      @media (max-width: 760px) { .row2 { grid-template-columns: 1fr; } .hero h1 { font-size: 22px; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <section class="hero">
+        <h1>营养辅助工具控制台</h1>
+        <p>登录后按角色展示：销售员跑业务流程，管理员管理问题流和审计。</p>
+      </section>
+
+      <div class="grid">
+        <article class="card">
+          <h3>登录</h3>
+          <label>角色</label>
+          <select id="roleInput">
+            <option value="sales">sales</option>
+            <option value="admin">admin</option>
+          </select>
+          <label>密码</label>
+          <input id="passwordInput" value="sales123" />
+          <button id="loginBtn">登录</button>
+          <div style="margin-top:10px;">
+            <span class="pill" id="sessionPill">未登录</span>
+          </div>
+        </article>
+
+        <article class="card" id="salesPanel">
+          <h3>销售员流程演示</h3>
+          <label>主诉</label>
+          <input id="concern" value="睡眠不好，经常半夜醒" />
+          <div class="row2">
+            <div>
+              <label>年龄段</label>
+              <input id="ageGroup" value="30-39" />
+            </div>
+            <div>
+              <label>是否近期手术</label>
+              <input id="surgery" value="false" />
+            </div>
+          </div>
+          <button id="runBtn">一键跑通流程</button>
+          <div style="margin-top:8px;font-size:12px;color:#5f6d63;">
+            当前流程ID：customer=<span id="lastCustomerId">-</span> / recommendation=<span id="lastRecommendationId">-</span> / followup=<span id="lastFollowupId">-</span>
+          </div>
+          <label>红线文本测试</label>
+          <textarea id="redText">术后恢复中，症状持续加重，正在用anticoagulant</textarea>
+          <button id="redBtn">执行红线场景</button>
+          <hr style="border:none;border-top:1px solid #e1ece5;margin:14px 0;">
+          <h3 style="margin-top:0;">销售员：回访操作</h3>
+          <label>回访备注</label>
+          <input id="followupNotes" value="用户反馈：夜醒次数减少" />
+          <div class="row2">
+            <button id="createFollowupBtn">创建回访</button>
+            <button id="closeFollowupBtn">关闭回访</button>
+          </div>
+          <label>再评估补充症状（逗号分隔）</label>
+          <input id="reassessComplaints" value="仍有轻度夜醒" />
+          <button id="reassessBtn">回访后再评估</button>
+        </article>
+
+        <article class="card hidden" id="adminPanel">
+          <h3>管理员：问题流配置</h3>
+          <button id="loadQfBtn">读取问题流</button>
+          <textarea id="questionFlowText"></textarea>
+          <button id="saveQfBtn">保存问题流（管理员）</button>
+          <button id="auditBtn">查询审计日志</button>
+          <hr style="border:none;border-top:1px solid #e1ece5;margin:14px 0;">
+          <h3 style="margin-top:0;">管理员：用户管理</h3>
+          <button id="listUsersBtn">刷新用户列表</button>
+          <label>新建账号用户名</label>
+          <input id="newUserName" value="sales_new" />
+          <label>新建账号密码</label>
+          <input id="newUserPassword" value="salesnew123" />
+          <label>角色</label>
+          <select id="newUserRole">
+            <option value="sales">sales</option>
+            <option value="admin">admin</option>
+          </select>
+          <button id="createUserBtn">创建账号</button>
+          <label>账号状态管理：用户ID</label>
+          <input id="targetUserId" placeholder="usr_xxxxx" />
+          <div class="row2">
+            <button id="disableUserBtn">禁用账号</button>
+            <button id="enableUserBtn">启用账号</button>
+          </div>
+          <label>重置密码（新密码）</label>
+          <input id="resetUserPassword" value="newpass123" />
+          <button id="resetPwdBtn">重置该用户密码</button>
+          <div id="usersBox" style="margin-top:10px;font-size:12px;color:#2f3f35;"></div>
+          <hr style="border:none;border-top:1px solid #e1ece5;margin:14px 0;">
+          <h3 style="margin-top:0;">管理员：指标面板</h3>
+          <button id="metricsBtn">刷新指标</button>
+          <button id="opsExportBtn">导出管理摘要（MD）</button>
+          <button id="exportsBtn">导出文件列表</button>
+          <button id="downloadLatestBtn">下载最新导出</button>
+          <div id="metricsBox" style="margin-top:10px;font-size:13px;color:#2f3f35;"></div>
+        </article>
+      </div>
+
+      <section class="log" id="log"></section>
+    </div>
+
+    <script>
+      const log = document.getElementById("log");
+      const sessionPill = document.getElementById("sessionPill");
+      const salesPanel = document.getElementById("salesPanel");
+      const adminPanel = document.getElementById("adminPanel");
+      const qfText = document.getElementById("questionFlowText");
+      const metricsBox = document.getElementById("metricsBox");
+      const usersBox = document.getElementById("usersBox");
+      let latestExportFilename = null;
+
+      let session = { token: null, role: null, actor_id: null };
+      let flowState = {
+        customerId: null,
+        recommendationId: null,
+        followupId: null,
+      };
+
+      const write = (msg, obj) => {
+        log.textContent += `${msg}\n`;
+        if (obj) log.textContent += `${JSON.stringify(obj, null, 2)}\n`;
+        log.textContent += "\n";
+      };
+
+      const api = async (method, path, body = null, useAuth = true) => {
+        const headers = { "Content-Type": "application/json" };
+        if (useAuth && session.token) headers.Authorization = `Bearer ${session.token}`;
+        const res = await fetch(path, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : null,
+        });
+        return res.json();
+      };
+
+      const refreshFlowState = () => {
+        document.getElementById("lastCustomerId").textContent = flowState.customerId || "-";
+        document.getElementById("lastRecommendationId").textContent = flowState.recommendationId || "-";
+        document.getElementById("lastFollowupId").textContent = flowState.followupId || "-";
+      };
+
+      const refreshRolePanels = () => {
+        if (!session.token) {
+          sessionPill.textContent = "未登录";
+          salesPanel.classList.remove("hidden");
+          adminPanel.classList.add("hidden");
+          return;
+        }
+        sessionPill.textContent = `已登录: ${session.role} (${session.actor_id})`;
+        adminPanel.classList.toggle("hidden", session.role !== "admin");
+        salesPanel.classList.remove("hidden");
+      };
+
+      document.getElementById("roleInput").addEventListener("change", (e) => {
+        document.getElementById("passwordInput").value = e.target.value === "admin" ? "admin123" : "sales123";
+      });
+
+      document.getElementById("loginBtn").onclick = async () => {
+        log.textContent = "";
+        const role = document.getElementById("roleInput").value;
+        const password = document.getElementById("passwordInput").value;
+        const result = await api("POST", "/api/v1/auth/login", { username: role, password }, false);
+        if (!result.data) {
+          write("登录失败", result.error || result);
+          return;
+        }
+        session = result.data;
+        refreshRolePanels();
+        write("登录成功", result.data);
+      };
+
+      document.getElementById("runBtn").onclick = async () => {
+        log.textContent = "";
+        const concern = document.getElementById("concern").value;
+        const ageGroup = document.getElementById("ageGroup").value;
+        const surgery = document.getElementById("surgery").value === "true";
+
+        const customer = await api("POST", "/api/v1/customers", {
+          actor_id: session.actor_id || "demo_rep",
+          age_group: ageGroup,
+          main_concern: concern,
+          recent_surgery: surgery,
+          lifestyle: { sleep: "wake at night", stress: "high" },
+          medications: [],
+          allergies_or_contraindications: []
+        });
+        write("1) customer created", customer.data || customer);
+        flowState.customerId = customer.data?.id || null;
+        refreshFlowState();
+
+        const assessment = await api("POST", "/api/v1/assessments", {
+          actor_id: session.actor_id || "demo_rep",
+          customer_id: customer.data.id,
+          intake_answers: {
+            complaints: [concern],
+            lifestyle_answers: { sleep: "unstable", stress: "high" },
+            special_events: [],
+            meds_and_contraindications: [],
+            goals: ["睡眠改善"]
+          }
+        });
+        write("2) assessment", assessment.data || assessment);
+
+        const recommendation = await api("POST", "/api/v1/recommendations", {
+          actor_id: session.actor_id || "demo_rep",
+          assessment_id: assessment.data.id
+        });
+        write("3) recommendation", recommendation.data || recommendation);
+        flowState.recommendationId = recommendation.data?.id || null;
+        refreshFlowState();
+
+        const report = await api("POST", "/api/v1/reports", {
+          actor_id: session.actor_id || "demo_rep",
+          recommendation_id: recommendation.data.id,
+          disclaimer_version: "v1.0"
+        });
+        write("4) report", report.data || report);
+      };
+
+      document.getElementById("redBtn").onclick = async () => {
+        log.textContent = "";
+        const redText = document.getElementById("redText").value;
+        const customer = await api("POST", "/api/v1/customers", {
+          actor_id: session.actor_id || "demo_rep",
+          age_group: "50-59",
+          main_concern: "术后营养恢复",
+          recent_surgery: true,
+          surgery_note: "recent surgery",
+          medications: ["anticoagulant"],
+          allergies_or_contraindications: ["contraindication"]
+        });
+        const assessment = await api("POST", "/api/v1/assessments", {
+          actor_id: session.actor_id || "demo_rep",
+          customer_id: customer.data.id,
+          intake_answers: {
+            complaints: [redText],
+            lifestyle_answers: {},
+            special_events: ["post surgery"],
+            meds_and_contraindications: ["warfarin"],
+            goals: ["恢复快一些"]
+          }
+        });
+        const recommendation = await api("POST", "/api/v1/recommendations", {
+          actor_id: session.actor_id || "demo_rep",
+          assessment_id: assessment.data.id
+        });
+        write("red-flag assessment", assessment.data || assessment);
+        write("red-flag recommendation (general reference only)", recommendation.data || recommendation);
+        flowState.customerId = customer.data?.id || null;
+        flowState.recommendationId = recommendation.data?.id || null;
+        refreshFlowState();
+      };
+
+      document.getElementById("createFollowupBtn").onclick = async () => {
+        if (!flowState.customerId || !flowState.recommendationId) {
+          write("follow-up", { message: "请先跑一次业务流程，拿到 customer 和 recommendation。" });
+          return;
+        }
+        const notes = document.getElementById("followupNotes").value;
+        const data = await api("POST", "/api/v1/follow-ups", {
+          actor_id: session.actor_id || "demo_rep",
+          customer_id: flowState.customerId,
+          recommendation_id: flowState.recommendationId,
+          due_in_weeks: 2,
+          notes
+        });
+        write("follow-up created", data.data || data);
+        flowState.followupId = data.data?.id || null;
+        refreshFlowState();
+      };
+
+      document.getElementById("closeFollowupBtn").onclick = async () => {
+        if (!flowState.followupId) {
+          write("follow-up", { message: "请先创建回访。" });
+          return;
+        }
+        const notes = document.getElementById("followupNotes").value;
+        const data = await api("POST", `/api/v1/follow-ups/${flowState.followupId}/close`, {
+          actor_id: session.actor_id || "demo_rep",
+          outcome_notes: notes,
+          symptoms_improved: true
+        });
+        write("follow-up closed", data.data || data);
+      };
+
+      document.getElementById("reassessBtn").onclick = async () => {
+        if (!flowState.followupId) {
+          write("re-assess", { message: "请先创建并关闭回访。" });
+          return;
+        }
+        const raw = document.getElementById("reassessComplaints").value;
+        const extra = raw.split(",").map(v => v.trim()).filter(Boolean);
+        const data = await api("POST", `/api/v1/follow-ups/${flowState.followupId}/re-assess`, {
+          actor_id: session.actor_id || "demo_rep",
+          extra_complaints: extra,
+          updated_goals: ["睡眠更稳定"]
+        });
+        write("re-assessment", data.data || data);
+        if (data.data?.new_recommendation_id) {
+          flowState.recommendationId = data.data.new_recommendation_id;
+          refreshFlowState();
+        }
+      };
+
+      document.getElementById("loadQfBtn").onclick = async () => {
+        const data = await api("GET", "/api/v1/question-flow");
+        qfText.value = JSON.stringify(data.data || data, null, 2);
+        write("question-flow loaded", data.data || data);
+      };
+
+      document.getElementById("saveQfBtn").onclick = async () => {
+        try {
+          const payload = JSON.parse(qfText.value);
+          const data = await api("PUT", "/api/v1/question-flow", payload);
+          write("question-flow saved", data.data || data);
+        } catch (e) {
+          write("JSON 解析失败", { error: String(e) });
+        }
+      };
+
+      document.getElementById("auditBtn").onclick = async () => {
+        const data = await api("GET", "/api/v1/audit-logs?limit=20");
+        write("audit logs", data.data || data);
+      };
+
+      const renderUsers = (users) => {
+        if (!users || !users.length) {
+          usersBox.innerHTML = "<div>暂无用户</div>";
+          return;
+        }
+        usersBox.innerHTML = users
+          .map(u => `<div style="padding:4px 0;border-bottom:1px dashed #d8e6de;">
+            <b>${u.username}</b> (${u.role}) | id=${u.id} | actor=${u.actor_id} | active=${u.is_active}
+          </div>`)
+          .join("");
+      };
+
+      document.getElementById("listUsersBtn").onclick = async () => {
+        const data = await api("GET", "/api/v1/admin/users");
+        if (!data.data) {
+          write("users error", data.error || data);
+          return;
+        }
+        renderUsers(data.data);
+        write("users list", { count: data.meta?.count || data.data.length });
+      };
+
+      document.getElementById("createUserBtn").onclick = async () => {
+        const username = document.getElementById("newUserName").value.trim();
+        const password = document.getElementById("newUserPassword").value.trim();
+        const role = document.getElementById("newUserRole").value;
+        const data = await api("POST", "/api/v1/admin/users", { username, password, role });
+        write("create user", data.data || data);
+        if (data.data?.id) {
+          document.getElementById("targetUserId").value = data.data.id;
+          document.getElementById("listUsersBtn").click();
+        }
+      };
+
+      const patchUserStatus = async (isActive) => {
+        const userId = document.getElementById("targetUserId").value.trim();
+        if (!userId) {
+          write("user status", { message: "请先填写用户ID。" });
+          return;
+        }
+        const data = await api("PATCH", `/api/v1/admin/users/${userId}/status`, { is_active: isActive });
+        write(isActive ? "enable user" : "disable user", data.data || data);
+        document.getElementById("listUsersBtn").click();
+      };
+
+      document.getElementById("disableUserBtn").onclick = async () => patchUserStatus(false);
+      document.getElementById("enableUserBtn").onclick = async () => patchUserStatus(true);
+
+      document.getElementById("resetPwdBtn").onclick = async () => {
+        const userId = document.getElementById("targetUserId").value.trim();
+        const newPassword = document.getElementById("resetUserPassword").value.trim();
+        if (!userId) {
+          write("reset password", { message: "请先填写用户ID。" });
+          return;
+        }
+        const data = await api("PATCH", `/api/v1/admin/users/${userId}/password`, { new_password: newPassword });
+        write("reset password", data.data || data);
+      };
+
+      document.getElementById("metricsBtn").onclick = async () => {
+        const data = await api("GET", "/api/v1/metrics/summary");
+        const m = data.data || {};
+        if (!m.totals) {
+          metricsBox.textContent = "读取失败，请确认管理员登录状态。";
+          write("metrics error", data.error || data);
+          return;
+        }
+        const lines = [
+          `客户总数: ${m.totals.customers}`,
+          `评估总数: ${m.totals.assessments}`,
+          `建议总数: ${m.totals.recommendations}`,
+          `报告总数: ${m.totals.reports}`,
+          `回访总数: ${m.totals.followups}`,
+          `红线数量: ${m.risk.red_flag_count}`,
+          `红线率: ${(m.risk.red_flag_rate * 100).toFixed(2)}%`,
+          `回访关闭率: ${(m.followup.close_rate * 100).toFixed(2)}%`,
+          `回访改善率(已关闭): ${(m.followup.improved_rate_on_closed * 100).toFixed(2)}%`
+        ];
+        metricsBox.innerHTML = lines.map(v => `<div style="padding:3px 0;">${v}</div>`).join("");
+        write("metrics summary", m);
+      };
+
+      document.getElementById("opsExportBtn").onclick = async () => {
+        const data = await api("POST", "/api/v1/ops/export-summary");
+        if (!data.data) {
+          write("ops export error", data.error || data);
+          return;
+        }
+        latestExportFilename = data.data.filename;
+        write("ops summary exported", data.data);
+      };
+
+      document.getElementById("exportsBtn").onclick = async () => {
+        const data = await api("GET", "/api/v1/exports");
+        if (!data.data) {
+          write("exports error", data.error || data);
+          return;
+        }
+        latestExportFilename = data.data.length ? data.data[0].filename : null;
+        write("exports list", data.data);
+      };
+
+      document.getElementById("downloadLatestBtn").onclick = async () => {
+        if (!latestExportFilename) {
+          write("download", { message: "请先点一次“导出文件列表”并确认有导出文件。" });
+          return;
+        }
+        if (!session.token) {
+          write("download", { message: "请先登录管理员。" });
+          return;
+        }
+        const res = await fetch(`/api/v1/exports/${encodeURIComponent(latestExportFilename)}`, {
+          headers: { Authorization: `Bearer ${session.token}` }
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          write("download error", err);
+          return;
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = latestExportFilename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        write("download", { filename: latestExportFilename, status: "ok" });
+      };
+
+      refreshRolePanels();
+      refreshFlowState();
+    </script>
+  </body>
+</html>

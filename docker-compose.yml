@@ -1,0 +1,14 @@
+services:
+  nutrition-assistant:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nutrition-assistant
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./exports:/app/exports
+    env_file:
+      - .env
+    restart: unless-stopped
